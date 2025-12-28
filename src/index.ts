@@ -7,15 +7,25 @@ import emailRoutes from './routes/emailRoutes';
 import { healthCheck } from './controllers/emailController';
 import { rateLimiter, errorHandler, notFoundHandler } from './middleware';
 import { emailService } from './services/emailService';
-import { getApiDocsHtml } from './docs/apiDocs';
+import { setupSwaggerDocs } from './docs/apiDocs';
 
 const app = express();
 
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
 
-// Security headers
-app.use(helmet());
+// Security headers - adjusted for Swagger UI
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://cdn-icons-png.flaticon.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
@@ -46,11 +56,8 @@ app.use(rateLimiter);
 app.get('/health', healthCheck);
 app.use('/api/email', emailRoutes);
 
-// API Documentation
-app.get('/docs', (_req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  res.send(getApiDocsHtml());
-});
+// Setup Swagger API Documentation
+setupSwaggerDocs(app);
 
 // Root endpoint
 app.get('/', (_req, res) => {

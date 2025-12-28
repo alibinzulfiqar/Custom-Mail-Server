@@ -5,6 +5,7 @@ A generic, backend-only email sending service designed for frontend-only website
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 ## ✨ Features
 
@@ -15,6 +16,7 @@ A generic, backend-only email sending service designed for frontend-only website
 - 🐳 **Docker-ready** - Easy deployment with Docker Compose
 - 🔌 **Any SMTP provider** - Gmail, SendGrid, Mailgun, Amazon SES, etc.
 - 🛡️ **No database required** - Completely stateless
+- 📚 **Swagger API Docs** - Interactive API documentation at `/docs`
 
 ## 📋 Table of Contents
 
@@ -23,6 +25,15 @@ A generic, backend-only email sending service designed for frontend-only website
 - [API Documentation](#-api-documentation)
 - [Frontend Examples](#-frontend-examples)
 - [Deployment](#-deployment)
+  - [Railway](#-railway-recommended)
+  - [Render](#-render)
+  - [Fly.io](#-flyio)
+  - [DigitalOcean App Platform](#-digitalocean-app-platform)
+  - [Heroku](#-heroku)
+  - [AWS (EC2/ECS)](#-aws)
+  - [Google Cloud Run](#-google-cloud-run)
+  - [Docker](#-docker)
+  - [VPS Manual Deployment](#-vps-manual-deployment)
 - [Error Codes](#-error-codes)
 - [Security](#-security)
 
@@ -81,6 +92,10 @@ curl -X POST http://localhost:3000/api/email/send \
     "text": "Hello from Email Microservice!"
   }'
 ```
+
+### View API Documentation
+
+Visit `http://localhost:3000/docs` for interactive Swagger documentation.
 
 ## ⚙️ Configuration
 
@@ -154,143 +169,58 @@ SMTP_PASS=your-ses-smtp-password
 ```
 </details>
 
+<details>
+<summary><strong>Zoho Mail</strong></summary>
+
+```env
+SMTP_HOST=smtp.zoho.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@zoho.com
+SMTP_PASS=your-password
+```
+</details>
+
+<details>
+<summary><strong>Outlook/Office 365</strong></summary>
+
+```env
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@outlook.com
+SMTP_PASS=your-password
+```
+</details>
+
+---
+
 ## 📚 API Documentation
 
-### Base URL
+### Interactive Docs
 
-```
-http://localhost:3000
-```
+Visit `/docs` on your deployed service for interactive Swagger UI documentation.
+
+### OpenAPI Spec
+
+- **Swagger UI:** `GET /docs`
+- **OpenAPI YAML:** `GET /docs/openapi.yaml`
+- **OpenAPI JSON:** `GET /docs/openapi.json`
+
+### Endpoints Summary
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/health` | ❌ | Health check |
+| `GET` | `/docs` | ❌ | API documentation |
+| `GET` | `/api/email/test` | ✅ | Test authentication |
+| `POST` | `/api/email/send` | ✅ | Send email |
 
 ### Authentication
 
-All protected endpoints require authentication via one of:
-
+All protected endpoints require an API key via:
 - **Header:** `X-API-Key: your-api-key`
 - **Header:** `Authorization: Bearer your-api-key`
-
----
-
-### Endpoints
-
-#### `GET /health`
-
-Health check endpoint (no authentication required).
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Service is healthy",
-  "data": {
-    "status": "healthy",
-    "smtp": {
-      "configured": true,
-      "connected": true
-    },
-    "timestamp": "2024-01-15T10:30:00.000Z",
-    "uptime": 3600
-  }
-}
-```
-
----
-
-#### `GET /api/email/test`
-
-Test API authentication.
-
-**Headers:**
-```
-X-API-Key: your-api-key
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Email API is working. Authentication successful."
-}
-```
-
----
-
-#### `POST /api/email/send`
-
-Send an email.
-
-**Headers:**
-```
-Content-Type: application/json
-X-API-Key: your-api-key
-```
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `to` | string \| string[] \| EmailAddress \| EmailAddress[] | **Yes** | Recipient(s) |
-| `cc` | string \| string[] \| EmailAddress \| EmailAddress[] | No | CC recipient(s) |
-| `bcc` | string \| string[] \| EmailAddress \| EmailAddress[] | No | BCC recipient(s) |
-| `subject` | string | **Yes** | Email subject |
-| `text` | string | **Yes*** | Plain text body |
-| `html` | string | **Yes*** | HTML body |
-| `replyTo` | string \| EmailAddress | No | Reply-to address |
-| `attachments` | Attachment[] | No | File attachments |
-
-> *Either `text` or `html` is required
-
-**EmailAddress Object:**
-```json
-{
-  "email": "user@example.com",
-  "name": "John Doe"
-}
-```
-
-**Attachment Object:**
-```json
-{
-  "filename": "document.pdf",
-  "content": "base64-encoded-content",
-  "contentType": "application/pdf"
-}
-```
-
-**Example Request:**
-```json
-{
-  "to": [
-    "user1@example.com",
-    { "email": "user2@example.com", "name": "Jane Doe" }
-  ],
-  "cc": "manager@example.com",
-  "subject": "Monthly Report",
-  "html": "<h1>Report</h1><p>Please find the attached report.</p>",
-  "text": "Report\n\nPlease find the attached report.",
-  "replyTo": "support@example.com",
-  "attachments": [
-    {
-      "filename": "report.pdf",
-      "content": "JVBERi0xLjQKJeLjz9MKMyAwIG9...",
-      "contentType": "application/pdf"
-    }
-  ]
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Email sent successfully",
-  "data": {
-    "messageId": "<abc123@smtp.example.com>",
-    "accepted": ["user1@example.com", "user2@example.com"],
-    "rejected": []
-  }
-}
-```
 
 ---
 
@@ -299,12 +229,15 @@ X-API-Key: your-api-key
 ### JavaScript (Fetch)
 
 ```javascript
+const EMAIL_API_URL = 'https://your-email-service.com';
+const EMAIL_API_KEY = 'your-api-key';
+
 async function sendEmail(data) {
-  const response = await fetch('https://your-api.com/api/email/send', {
+  const response = await fetch(`${EMAIL_API_URL}/api/email/send`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': 'your-api-key'
+      'X-API-Key': EMAIL_API_KEY
     },
     body: JSON.stringify(data)
   });
@@ -316,80 +249,112 @@ async function sendEmail(data) {
 sendEmail({
   to: 'recipient@example.com',
   subject: 'Hello!',
-  html: '<h1>Hello World</h1>'
-}).then(result => console.log(result));
+  html: '<h1>Hello World</h1>',
+  text: 'Hello World'
+}).then(console.log);
 ```
 
-### React (with axios)
+### React Contact Form
 
 ```jsx
-import axios from 'axios';
+import { useState } from 'react';
 
-const emailApi = axios.create({
-  baseURL: 'https://your-api.com',
-  headers: {
-    'X-API-Key': process.env.REACT_APP_EMAIL_API_KEY
+const API_URL = process.env.REACT_APP_EMAIL_API_URL;
+const API_KEY = process.env.REACT_APP_EMAIL_API_KEY;
+
+export function ContactForm() {
+  const [status, setStatus] = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus('sending');
+
+    const formData = new FormData(e.target);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/email/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY
+        },
+        body: JSON.stringify({
+          to: 'contact@yoursite.com',
+          subject: `Contact: ${formData.get('subject')}`,
+          replyTo: formData.get('email'),
+          html: `
+            <h2>New Contact Form</h2>
+            <p><strong>Name:</strong> ${formData.get('name')}</p>
+            <p><strong>Email:</strong> ${formData.get('email')}</p>
+            <p><strong>Message:</strong></p>
+            <p>${formData.get('message')}</p>
+          `,
+          text: `Name: ${formData.get('name')}\nEmail: ${formData.get('email')}\nMessage: ${formData.get('message')}`
+        })
+      });
+
+      const result = await response.json();
+      setStatus(result.success ? 'success' : 'error');
+    } catch (error) {
+      setStatus('error');
+    }
   }
-});
 
-export async function sendContactForm(name, email, message) {
-  const response = await emailApi.post('/api/email/send', {
-    to: 'contact@yoursite.com',
-    subject: `Contact Form: ${name}`,
-    replyTo: email,
-    html: `
-      <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Message:</strong></p>
-      <p>${message}</p>
-    `,
-    text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`
-  });
-  
-  return response.data;
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="name" placeholder="Your Name" required />
+      <input name="email" type="email" placeholder="Your Email" required />
+      <input name="subject" placeholder="Subject" required />
+      <textarea name="message" placeholder="Message" required />
+      <button type="submit" disabled={status === 'sending'}>
+        {status === 'sending' ? 'Sending...' : 'Send'}
+      </button>
+      {status === 'success' && <p>Message sent!</p>}
+      {status === 'error' && <p>Failed to send. Try again.</p>}
+    </form>
+  );
 }
 ```
 
 ### Vue.js
 
 ```javascript
-// emailService.js
+// composables/useEmail.js
 const API_URL = import.meta.env.VITE_EMAIL_API_URL;
 const API_KEY = import.meta.env.VITE_EMAIL_API_KEY;
 
-export async function sendEmail(emailData) {
-  const response = await fetch(`${API_URL}/api/email/send`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': API_KEY
-    },
-    body: JSON.stringify(emailData)
-  });
+export function useEmail() {
+  async function sendEmail(data) {
+    const response = await fetch(`${API_URL}/api/email/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY
+      },
+      body: JSON.stringify(data)
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to send email');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    return response.json();
   }
 
-  return response.json();
+  return { sendEmail };
 }
 ```
 
-### Sending Attachments
+### With Attachments
 
 ```javascript
 // Convert file to base64
-function fileToBase64(file) {
+async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
-      // Remove data URL prefix (e.g., "data:application/pdf;base64,")
-      const base64 = reader.result.split(',')[1];
-      resolve(base64);
-    };
+    reader.onload = () => resolve(reader.result.split(',')[1]);
     reader.onerror = reject;
   });
 }
@@ -411,11 +376,383 @@ async function sendWithAttachment(file) {
 }
 ```
 
+---
+
 ## 🚢 Deployment
 
-### Docker Compose (Recommended)
+### ⚡ Railway (Recommended)
+
+Railway offers the simplest deployment experience with automatic builds.
+
+#### One-Click Deploy
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
+
+#### Manual Deploy
+
+1. **Create account** at [railway.app](https://railway.app)
+
+2. **Create new project** → "Deploy from GitHub repo"
+
+3. **Connect your repository**
+
+4. **Add environment variables** in Settings → Variables:
+   ```
+   API_KEY=your-secure-api-key-min-16-chars
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   SMTP_FROM_EMAIL=your-email@gmail.com
+   SMTP_FROM_NAME=My Email Service
+   CORS_ORIGINS=https://yourfrontend.com
+   NODE_ENV=production
+   ```
+
+5. **Deploy** - Railway auto-detects Node.js and runs `npm run build && npm start`
+
+6. **Get your URL** from the Deployments tab (e.g., `https://email-service-production.up.railway.app`)
+
+#### railway.json (Optional)
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
+```
+
+---
+
+### 🎨 Render
+
+Render provides free tier with automatic SSL.
+
+1. **Create account** at [render.com](https://render.com)
+
+2. **New** → **Web Service** → Connect GitHub repo
+
+3. **Configure:**
+   - **Name:** `email-microservice`
+   - **Runtime:** `Node`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
+
+4. **Add Environment Variables:**
+   ```
+   API_KEY=your-secure-api-key
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   SMTP_FROM_EMAIL=your-email@gmail.com
+   NODE_ENV=production
+   ```
+
+5. **Create Web Service**
+
+#### render.yaml (Blueprint)
+```yaml
+services:
+  - type: web
+    name: email-microservice
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: "Email Service"
+```
+
+---
+
+### 🪁 Fly.io
+
+Fly.io offers global edge deployment with generous free tier.
+
+1. **Install Fly CLI:**
+   ```bash
+   # Windows (PowerShell)
+   pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
+   
+   # macOS/Linux
+   curl -L https://fly.io/install.sh | sh
+   ```
+
+2. **Login:**
+   ```bash
+   fly auth login
+   ```
+
+3. **Create fly.toml:**
+   ```toml
+   app = "email-microservice"
+   primary_region = "iad"
+
+   [build]
+     builder = "heroku/buildpacks:20"
+
+   [env]
+     PORT = "8080"
+     NODE_ENV = "production"
+
+   [http_service]
+     internal_port = 8080
+     force_https = true
+     auto_stop_machines = true
+     auto_start_machines = true
+     min_machines_running = 0
+
+   [[services]]
+     http_checks = []
+     internal_port = 8080
+     protocol = "tcp"
+
+     [[services.ports]]
+       handlers = ["http"]
+       port = 80
+
+     [[services.ports]]
+       handlers = ["tls", "http"]
+       port = 443
+
+     [[services.tcp_checks]]
+       grace_period = "1s"
+       interval = "15s"
+       restart_limit = 0
+       timeout = "2s"
+   ```
+
+4. **Launch app:**
+   ```bash
+   fly launch
+   ```
+
+5. **Set secrets:**
+   ```bash
+   fly secrets set API_KEY="your-secure-api-key" \
+     SMTP_HOST="smtp.gmail.com" \
+     SMTP_PORT="587" \
+     SMTP_SECURE="false" \
+     SMTP_USER="your-email@gmail.com" \
+     SMTP_PASS="your-app-password" \
+     SMTP_FROM_EMAIL="your-email@gmail.com" \
+     SMTP_FROM_NAME="Email Service"
+   ```
+
+6. **Deploy:**
+   ```bash
+   fly deploy
+   ```
+
+---
+
+### 🌊 DigitalOcean App Platform
+
+1. **Create account** at [digitalocean.com](https://digitalocean.com)
+
+2. **Apps** → **Create App** → **GitHub**
+
+3. **Configure:**
+   - **Source:** Your GitHub repo
+   - **Branch:** `main`
+   - **Type:** Web Service
+   - **Build Command:** `npm install && npm run build`
+   - **Run Command:** `npm start`
+
+4. **Add Environment Variables**
+
+5. **Choose plan** and **Create Resources**
+
+#### app.yaml (App Spec)
+```yaml
+name: email-microservice
+services:
+  - name: api
+    github:
+      repo: your-username/email-microservice
+      branch: main
+    build_command: npm install && npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /health
+    envs:
+      - key: NODE_ENV
+        value: "production"
+      - key: API_KEY
+        type: SECRET
+      - key: SMTP_HOST
+        type: SECRET
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        type: SECRET
+      - key: SMTP_PASS
+        type: SECRET
+      - key: SMTP_FROM_EMAIL
+        type: SECRET
+```
+
+---
+
+### 🟣 Heroku
+
+1. **Install Heroku CLI:**
+   ```bash
+   npm install -g heroku
+   ```
+
+2. **Login:**
+   ```bash
+   heroku login
+   ```
+
+3. **Create app:**
+   ```bash
+   heroku create email-microservice
+   ```
+
+4. **Set environment variables:**
+   ```bash
+   heroku config:set \
+     API_KEY="your-secure-api-key" \
+     SMTP_HOST="smtp.gmail.com" \
+     SMTP_PORT="587" \
+     SMTP_SECURE="false" \
+     SMTP_USER="your-email@gmail.com" \
+     SMTP_PASS="your-app-password" \
+     SMTP_FROM_EMAIL="your-email@gmail.com" \
+     SMTP_FROM_NAME="Email Service" \
+     NODE_ENV="production"
+   ```
+
+5. **Create Procfile:**
+   ```
+   web: npm start
+   ```
+
+6. **Deploy:**
+   ```bash
+   git push heroku main
+   ```
+
+---
+
+### ☁️ AWS
+
+#### Option A: AWS App Runner (Easiest)
+
+1. Go to **AWS App Runner** console
+2. **Create service** → **Source code repository**
+3. Connect GitHub and select repo
+4. Configure build:
+   - **Runtime:** Node.js 18
+   - **Build command:** `npm install && npm run build`
+   - **Start command:** `npm start`
+   - **Port:** `3000`
+5. Add environment variables
+6. Create & deploy
+
+#### Option B: EC2 with Docker
 
 ```bash
+# SSH into EC2 instance
+ssh -i your-key.pem ec2-user@your-instance-ip
+
+# Install Docker
+sudo yum update -y
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+
+# Clone and deploy
+git clone https://github.com/your-repo/email-microservice.git
+cd email-microservice
+
+# Create .env file
+cp .env.example .env
+nano .env  # Edit with your values
+
+# Run with Docker
+docker-compose up -d
+```
+
+#### Option C: AWS ECS (Production)
+
+Use the provided `Dockerfile` with ECS Fargate:
+
+1. Push image to **ECR**
+2. Create **ECS Cluster**
+3. Create **Task Definition** with environment variables
+4. Create **Service** with load balancer
+
+---
+
+### 🌤️ Google Cloud Run
+
+1. **Install gcloud CLI** and authenticate
+
+2. **Build and push:**
+   ```bash
+   # Build
+   gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/email-microservice
+
+   # Deploy
+   gcloud run deploy email-microservice \
+     --image gcr.io/YOUR_PROJECT_ID/email-microservice \
+     --platform managed \
+     --region us-central1 \
+     --allow-unauthenticated \
+     --set-env-vars="NODE_ENV=production" \
+     --set-secrets="API_KEY=api-key:latest,SMTP_HOST=smtp-host:latest,SMTP_USER=smtp-user:latest,SMTP_PASS=smtp-pass:latest,SMTP_FROM_EMAIL=smtp-from:latest"
+   ```
+
+---
+
+### 🐳 Docker
+
+#### Docker Compose (Recommended)
+
+```bash
+# Clone repository
+git clone https://github.com/your-repo/email-microservice.git
+cd email-microservice
+
+# Configure environment
+cp .env.example .env
+nano .env  # Edit with your values
+
 # Build and start
 docker-compose up -d
 
@@ -426,36 +763,128 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Manual Deployment
+#### Docker Run
 
 ```bash
-# Install dependencies
-npm ci --only=production
+# Build image
+docker build -t email-microservice .
 
-# Build
-npm run build
-
-# Start
-NODE_ENV=production node dist/index.js
+# Run container
+docker run -d \
+  --name email-service \
+  -p 3000:3000 \
+  -e API_KEY="your-secure-api-key" \
+  -e SMTP_HOST="smtp.gmail.com" \
+  -e SMTP_PORT="587" \
+  -e SMTP_SECURE="false" \
+  -e SMTP_USER="your-email@gmail.com" \
+  -e SMTP_PASS="your-app-password" \
+  -e SMTP_FROM_EMAIL="your-email@gmail.com" \
+  -e NODE_ENV="production" \
+  email-microservice
 ```
 
-### Behind Reverse Proxy (nginx)
+---
+
+### 🖥️ VPS Manual Deployment
+
+#### Ubuntu/Debian
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install PM2 for process management
+sudo npm install -g pm2
+
+# Clone repository
+git clone https://github.com/your-repo/email-microservice.git
+cd email-microservice
+
+# Install dependencies and build
+npm ci --only=production
+npm run build
+
+# Create .env file
+cp .env.example .env
+nano .env  # Edit with your values
+
+# Start with PM2
+pm2 start dist/index.js --name email-service
+pm2 save
+pm2 startup
+```
+
+#### Nginx Reverse Proxy
 
 ```nginx
 server {
-    listen 443 ssl;
-    server_name api.example.com;
+    listen 80;
+    server_name api.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
 
-    location /email/ {
-        proxy_pass http://localhost:3000/;
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 ```
+
+#### SSL with Certbot
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d api.yourdomain.com
+```
+
+---
+
+## ⚠️ Important Notes
+
+### Why Not Vercel/Netlify?
+
+**Vercel** and **Netlify** are optimized for serverless/edge functions and static sites. This email microservice is a **long-running Node.js server** that:
+
+- Maintains SMTP connection pools
+- Requires persistent process for rate limiting
+- Uses WebSocket-like connections for SMTP
+
+**Recommended alternatives:**
+- ✅ **Railway** - Best DX, automatic deploys
+- ✅ **Render** - Free tier available
+- ✅ **Fly.io** - Global edge deployment
+- ✅ **DigitalOcean** - Affordable, reliable
+
+### Production Checklist
+
+- [ ] Generate strong API key: `openssl rand -hex 32`
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure CORS to specific origins (not `*`)
+- [ ] Use HTTPS (all platforms above provide free SSL)
+- [ ] Set appropriate rate limits
+- [ ] Monitor logs for errors
+- [ ] Set up health check monitoring
+
+---
 
 ## ❌ Error Codes
 
@@ -465,7 +894,6 @@ server {
 | `AUTH_INVALID` | 401 | Invalid API key |
 | `VALIDATION_ERROR` | 400 | Request validation failed |
 | `INVALID_EMAIL` | 400 | Invalid email address format |
-| `MISSING_BODY_CONTENT` | 400 | Neither text nor HTML body provided |
 | `ATTACHMENT_TOO_LARGE` | 400 | Attachment exceeds size limit |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
 | `EMAIL_RATE_LIMIT_EXCEEDED` | 429 | Email sending rate limit |
@@ -486,6 +914,8 @@ server {
 }
 ```
 
+---
+
 ## 🔒 Security
 
 ### Best Practices
@@ -500,8 +930,8 @@ server {
 
 The service implements two levels of rate limiting:
 
-- **Global:** All endpoints (configurable)
-- **Email endpoint:** Half the global rate (stricter)
+- **Global:** All endpoints (configurable via `RATE_LIMIT_MAX_REQUESTS`)
+- **Email endpoint:** Half the global rate (stricter to prevent abuse)
 
 ### Input Sanitization
 
@@ -510,6 +940,8 @@ The service implements two levels of rate limiting:
 - Attachment sizes are limited
 - Request body size is limited to 25MB
 
+---
+
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE) for details.
@@ -517,5 +949,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with ❤️ for frontend developers By <a href="https://www.alibinzulfiqar.live">Ali Bin Zulfiqar</a>
+  Made with ❤️ for frontend developers<br>
+  By <a href="https://www.alibinzulfiqar.live">Ali Bin Zulfiqar</a>
 </p>

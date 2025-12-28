@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: Email Microservice API
+  description: |
+    A generic, backend-only email sending service designed for frontend-only websites (React, Vue, static sites, etc.).
+    
+    ## Features
+    - 🚀 **One backend → Many frontends** - Deploy once, use from any frontend
+    - 🔒 **Secure by default** - API key authentication, rate limiting, CORS
+    - ⚙️ **Configuration-driven** - All settings via environment variables
+    - 📧 **Full email support** - To/CC/BCC, HTML, plain text, attachments
+    - 🐳 **Docker-ready** - Easy deployment with Docker Compose
+    
+    ## Authentication
+    All protected endpoints require an API key. Include it using one of these methods:
+    - **Header:** `X-API-Key: your-api-key`
+    - **Header:** `Authorization: Bearer your-api-key`
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://your-production-url.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Service health monitoring
+  - name: Email
+    description: Email sending operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Check service health and SMTP connection status. This endpoint is public and does not require authentication.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                success: true
+                message: Service is healthy
+                data:
+                  status: healthy
+                  smtp:
+                    configured: true
+                    connected: true
+                  timestamp: '2024-01-15T10:30:00.000Z'
+                  uptime: 3600
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/email/test:
+    get:
+      tags:
+        - Email
+      summary: Test Authentication
+      description: Test API key authentication without sending an email. Use this to verify your API key is valid.
+      operationId: testAuth
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: Email API is working. Authentication successful.
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing:
+                  summary: API key missing
+                  value:
+                    success: false
+                    message: Authentication required
+                    error:
+                      code: AUTH_MISSING
+                      details: API key is required. Provide it via Authorization header (Bearer token) or X-API-Key header.
+                invalid:
+                  summary: Invalid API key
+                  value:
+                    success: false
+                    message: Invalid API key
+                    error:
+                      code: AUTH_INVALID
+                      details: The provided API key is invalid.
+
+  /api/email/send:
+    post:
+      tags:
+        - Email
+      summary: Send Email
+      description: |
+        Send an email with support for:
+        - Multiple recipients (To, CC, BCC)
+        - Plain text and HTML body
+        - File attachments (base64 encoded)
+        - Custom reply-to address
+      operationId: sendEmail
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendEmailRequest'
+            examples:
+              simple:
+                summary: Simple text email
+                value:
+                  to: recipient@example.com
+                  subject: Hello World
+                  text: This is a simple text email.
+              html:
+                summary: HTML email
+                value:
+                  to: recipient@example.com
+                  subject: Welcome!
+                  html: <h1>Welcome</h1><p>Thank you for signing up!</p>
+                  text: Welcome! Thank you for signing up!
+              multiple:
+                summary: Multiple recipients
+                value:
+                  to:
+                    - user1@example.com
+                    - email: user2@example.com
+                      name: Jane Doe
+                  cc: manager@example.com
+                  subject: Team Update
+                  html: <h1>Team Update</h1><p>Here's the latest news...</p>
+              attachment:
+                summary: With attachment
+                value:
+                  to: recipient@example.com
+                  subject: Document Attached
+                  text: Please find the document attached.
+                  attachments:
+                    - filename: document.pdf
+                      content: JVBERi0xLjQKJeLjz9M...
+                      contentType: application/pdf
+      responses:
+        '200':
+          description: Email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendEmailResponse'
+              example:
+                success: true
+                message: Email sent successfully
+                data:
+                  messageId: <abc123@smtp.example.com>
+                  accepted:
+                    - recipient@example.com
+                  rejected: []
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  summary: Validation failed
+                  value:
+                    success: false
+                    message: Validation failed
+                    error:
+                      code: VALIDATION_ERROR
+                      details: 'to: Invalid email address format'
+                missingBody:
+                  summary: Missing body content
+                  value:
+                    success: false
+                    message: Validation failed
+                    error:
+                      code: VALIDATION_ERROR
+                      details: 'text: Either text or html body is required'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Email rate limit exceeded
+                error:
+                  code: EMAIL_RATE_LIMIT_EXCEEDED
+                  details: You are sending emails too frequently. Please wait before trying again.
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: SMTP error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                connection:
+                  summary: Connection error
+                  value:
+                    success: false
+                    message: Failed to connect to SMTP server
+                    error:
+                      code: SMTP_CONNECTION_ERROR
+                      details: The email server is unavailable. Please try again later.
+                auth:
+                  summary: Auth error
+                  value:
+                    success: false
+                    message: SMTP authentication failed
+                    error:
+                      code: SMTP_AUTH_ERROR
+                      details: The email server rejected the credentials.
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key passed in X-API-Key header
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API key passed as Bearer token
+
+  schemas:
+    EmailAddress:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address
+          example: user@example.com
+        name:
+          type: string
+          description: Display name
+          example: John Doe
+          maxLength: 100
+
+    Attachment:
+      type: object
+      required:
+        - filename
+        - content
+      properties:
+        filename:
+          type: string
+          description: Name of the file
+          example: document.pdf
+          maxLength: 255
+        content:
+          type: string
+          format: byte
+          description: Base64 encoded file content
+          example: JVBERi0xLjQKJeLjz9M...
+        contentType:
+          type: string
+          description: MIME type of the file
+          example: application/pdf
+
+    SendEmailRequest:
+      type: object
+      required:
+        - to
+        - subject
+      properties:
+        to:
+          oneOf:
+            - type: string
+              format: email
+            - type: array
+              items:
+                oneOf:
+                  - type: string
+                    format: email
+                  - $ref: '#/components/schemas/EmailAddress'
+          description: Recipient email address(es)
+          example: recipient@example.com
+        cc:
+          oneOf:
+            - type: string
+              format: email
+            - type: array
+              items:
+                oneOf:
+                  - type: string
+                    format: email
+                  - $ref: '#/components/schemas/EmailAddress'
+          description: CC recipient(s)
+        bcc:
+          oneOf:
+            - type: string
+              format: email
+            - type: array
+              items:
+                oneOf:
+                  - type: string
+                    format: email
+                  - $ref: '#/components/schemas/EmailAddress'
+          description: BCC recipient(s)
+        subject:
+          type: string
+          description: Email subject line
+          example: Hello World
+          maxLength: 998
+        text:
+          type: string
+          description: Plain text body (required if html is not provided)
+          example: This is a plain text email.
+        html:
+          type: string
+          description: HTML body (required if text is not provided)
+          example: <h1>Hello</h1><p>This is an HTML email.</p>
+        replyTo:
+          oneOf:
+            - type: string
+              format: email
+            - $ref: '#/components/schemas/EmailAddress'
+          description: Reply-to address
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          description: File attachments (max 10)
+          maxItems: 10
+
+    SendEmailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Email sent successfully
+        data:
+          type: object
+          properties:
+            messageId:
+              type: string
+              description: Unique message ID from SMTP server
+              example: <abc123@smtp.example.com>
+            accepted:
+              type: array
+              items:
+                type: string
+              description: List of accepted recipient addresses
+              example: ['recipient@example.com']
+            rejected:
+              type: array
+              items:
+                type: string
+              description: List of rejected recipient addresses
+              example: []
+
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [healthy, unhealthy]
+            smtp:
+              type: object
+              properties:
+                configured:
+                  type: boolean
+                connected:
+                  type: boolean
+            timestamp:
+              type: string
+              format: date-time
+            uptime:
+              type: number
+              description: Server uptime in seconds
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Human-readable error message
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code for programmatic handling
+              enum:
+                - AUTH_MISSING
+                - AUTH_INVALID
+                - VALIDATION_ERROR
+                - INVALID_EMAIL
+                - MISSING_BODY_CONTENT
+                - ATTACHMENT_TOO_LARGE
+                - INVALID_ATTACHMENT
+                - RATE_LIMIT_EXCEEDED
+                - EMAIL_RATE_LIMIT_EXCEEDED
+                - SMTP_CONNECTION_ERROR
+                - SMTP_AUTH_ERROR
+                - SMTP_SEND_ERROR
+                - INTERNAL_ERROR
+            details:
+              type: string
+              description: Additional error details
