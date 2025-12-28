@@ -517,5 +517,5 @@ MIT License - See [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with ❤️ for frontend developers By <a href="https://alibinzulfiqar.live">Ali Bin Zulfiqar</a>
+  Made with ❤️ for frontend developers By <a href="https://www.alibinzulfiqar.live">Ali Bin Zulfiqar</a>
 </p>
