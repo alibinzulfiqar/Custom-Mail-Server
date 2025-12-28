@@ -2,9 +2,9 @@
  * API Documentation Setup with Swagger
  */
 import swaggerUi from 'swagger-ui-express';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import type { Express } from 'express';
 
 // Custom Swagger UI options with CDN assets (works on serverless platforms like Vercel)
@@ -26,12 +26,40 @@ const swaggerOptions: swaggerUi.SwaggerUiOptions = {
 };
 
 /**
+ * Find the OpenAPI spec file in various possible locations
+ */
+function findOpenApiSpec(): string | null {
+  const possiblePaths = [
+    join(__dirname, 'openapi.yaml'),
+    join(process.cwd(), 'src', 'docs', 'openapi.yaml'),
+    join(process.cwd(), 'dist', 'docs', 'openapi.yaml'),
+    join(dirname(__dirname), 'docs', 'openapi.yaml'),
+  ];
+
+  for (const path of possiblePaths) {
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+  return null;
+}
+
+/**
  * Setup Swagger documentation routes
  */
 export function setupSwaggerDocs(app: Express): void {
   try {
-    // Load OpenAPI spec
-    const specPath = join(__dirname, 'openapi.yaml');
+    // Find OpenAPI spec
+    const specPath = findOpenApiSpec();
+    
+    if (!specPath) {
+      console.warn('⚠️ OpenAPI spec not found, using inline definition');
+      // Fallback to inline spec if file not found
+      const inlineSpec = getInlineOpenApiSpec();
+      app.use('/docs', swaggerUi.serve, swaggerUi.setup(inlineSpec, swaggerOptions));
+      return;
+    }
+    
     const specFile = readFileSync(specPath, 'utf8');
     const swaggerDocument = parse(specFile);
 
@@ -75,4 +103,92 @@ export function getApiDocsHtml(): string {
   <p>View the <a href="/docs">API Documentation</a></p>
 </body>
 </html>`;
+}
+
+/**
+ * Inline OpenAPI spec for serverless environments where file reading may fail
+ */
+function getInlineOpenApiSpec() {
+  return {
+    openapi: '3.0.3',
+    info: {
+      title: 'Email Microservice API',
+      description: 'A generic, backend-only email sending microservice for frontend applications',
+      version: '1.0.0',
+    },
+    servers: [
+      { url: '/', description: 'Current server' },
+    ],
+    paths: {
+      '/health': {
+        get: {
+          summary: 'Health check endpoint',
+          responses: {
+            '200': { description: 'Service is healthy' },
+          },
+        },
+      },
+      '/api/email/send': {
+        post: {
+          summary: 'Send an email',
+          security: [{ ApiKeyAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['to', 'subject'],
+                  properties: {
+                    to: { type: 'array', items: { type: 'string' }, description: 'Recipient email addresses' },
+                    cc: { type: 'array', items: { type: 'string' }, description: 'CC recipients' },
+                    bcc: { type: 'array', items: { type: 'string' }, description: 'BCC recipients' },
+                    subject: { type: 'string', description: 'Email subject' },
+                    text: { type: 'string', description: 'Plain text body' },
+                    html: { type: 'string', description: 'HTML body' },
+                    attachments: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          filename: { type: 'string' },
+                          content: { type: 'string', description: 'Base64 encoded content' },
+                          contentType: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Email sent successfully' },
+            '400': { description: 'Validation error' },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Server error' },
+          },
+        },
+      },
+      '/api/email/test': {
+        get: {
+          summary: 'Test API authentication',
+          security: [{ ApiKeyAuth: [] }],
+          responses: {
+            '200': { description: 'Authentication successful' },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+    },
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key',
+        },
+      },
+    },
+  };
 }
