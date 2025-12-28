@@ -7,6 +7,7 @@ import emailRoutes from './routes/emailRoutes';
 import { healthCheck } from './controllers/emailController';
 import { rateLimiter, errorHandler, notFoundHandler } from './middleware';
 import { emailService } from './services/emailService';
+import { getApiDocsHtml } from './docs/apiDocs';
 
 const app = express();
 
@@ -45,6 +46,12 @@ app.use(rateLimiter);
 app.get('/health', healthCheck);
 app.use('/api/email', emailRoutes);
 
+// API Documentation
+app.get('/docs', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getApiDocsHtml());
+});
+
 // Root endpoint
 app.get('/', (_req, res) => {
   res.json({
@@ -53,10 +60,11 @@ app.get('/', (_req, res) => {
     version: '1.0.0',
     endpoints: {
       health: 'GET /health',
+      docs: 'GET /docs',
       sendEmail: 'POST /api/email/send',
       testAuth: 'GET /api/email/test',
     },
-    documentation: 'See README.md for API documentation',
+    documentation: 'Visit /docs for interactive API documentation',
   });
 });
 
