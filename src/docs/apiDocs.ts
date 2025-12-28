@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 import { join } from 'path';
 import type { Express } from 'express';
 
-// Custom Swagger UI options
+// Custom Swagger UI options with CDN assets (works on serverless platforms like Vercel)
 const swaggerOptions: swaggerUi.SwaggerUiOptions = {
   customCss: `
     .swagger-ui .topbar { display: none }
@@ -17,6 +17,12 @@ const swaggerOptions: swaggerUi.SwaggerUiOptions = {
   `,
   customSiteTitle: 'Email Microservice API Docs',
   customfavIcon: 'https://cdn-icons-png.flaticon.com/512/561/561127.png',
+  // Use CDN for Swagger UI assets (critical for serverless deployments)
+  customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+  customJs: [
+    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js',
+  ],
 };
 
 /**
